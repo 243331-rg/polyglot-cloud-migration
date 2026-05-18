@@ -1,0 +1,41 @@
+services:
+  # .NET Backend Service
+  backend:
+    build: ./backend-dotnet
+    ports:
+      - "5192:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Database=migration_db;Username=user123;Password=password123
+    depends_on:
+      - db
+
+  # Python Worker Service
+  worker:
+    build: ./worker-python
+    restart: always
+    depends_on:
+      - db
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15
+    container_name: migration_db
+    environment:
+      POSTGRES_USER: user123
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: migration_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Frontend Service (Dashboard)
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./frontend-js:/usr/share/nginx/html
+
+volumes:
+  postgres_data:

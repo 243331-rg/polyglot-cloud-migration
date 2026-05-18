@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  migration_db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  backend:
+    image: polyglot-backend:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=migration_db;Port=5432;Database=postgres;Username=postgres;Password=password
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  worker:
+    image: polyglot-worker:latest
+    environment:
+      - BACKEND_URL=http://backend:8080/migration
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  db_data:

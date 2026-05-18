@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cloud Migration Pro - Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; text-align: center; padding: 40px; background: #f0f4f8; margin: 0; }
+        .container { background: white; padding: 30px; border-radius: 15px; display: inline-block; box-shadow: 0 15px 35px rgba(0,0,0,0.1); width: 90%; max-width: 900px; }
+        
+        h1 { color: #2d3748; margin-bottom: 10px; }
+        .subtitle { color: #718096; margin-bottom: 30px; }
+
+        .controls { background: #f7fafc; padding: 25px; border-radius: 10px; margin-bottom: 30px; border: 1px solid #edf2f7; }
+        
+        input { padding: 12px; width: 280px; border-radius: 8px; border: 2px solid #e2e8f0; font-size: 15px; outline: none; transition: 0.2s; }
+        input:focus { border-color: #4299e1; box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2); }
+
+        button { padding: 12px 28px; font-size: 16px; cursor: pointer; background: #3182ce; color: white; border: none; border-radius: 8px; font-weight: 600; margin-left: 10px; transition: 0.3s; }
+        button:hover { background: #2b6cb0; transform: translateY(-1px); }
+        button:disabled { background: #cbd5e0; cursor: not-allowed; }
+        
+        /* Table Styling */
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 15px; border-bottom: 1px solid #edf2f7; text-align: left; }
+        th { background-color: #edf2f7; color: #4a5568; font-weight: 600; text-transform: uppercase; font-size: 12px; letter-spacing: 0.05em; }
+        tr:hover { background-color: #f7fafc; }
+
+        /* Status Badges */
+        .status-badge { padding: 6px 14px; border-radius: 50px; font-size: 12px; font-weight: 700; text-transform: uppercase; }
+        .status-Pending { background: #fefcbf; color: #975a16; }   /* Yellow */
+        .status-Processing { background: #bee3f8; color: #2c5282; } /* Blue */
+        .status-Completed { background: #c6f6d5; color: #22543d; }  /* Green */
+        .status-Failed { background: #fed7d7; color: #822727; }     /* Red */
+
+        #status-msg { margin-top: 15px; font-size: 14px; font-weight: 500; }
+        .text-success { color: #38a169; }
+        .text-error { color: #e53e3e; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Cloud Migration Dashboard</h1>
+        <p class="subtitle">Monitor and scale your multi-service cloud tasks</p>
+        
+        <div class="controls">
+            <p style="margin-top: 0; font-weight: 600; color: #4a5568;">Ready to migrate a new file?</p>
+            <input type="text" id="fileNameInput" placeholder="Enter filename (e.g. backup_v1.zip)">
+            <button id="migrateBtn" onclick="startMigration()">Start Migration</button>
+            <div id="status-msg">System Idle</div>
+        </div>
+
+        <h3 style="text-align: left; color: #2d3748; border-left: 4px solid #3182ce; padding-left: 10px;">Live Task Queue</h3>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Task ID</th>
+                        <th>File Name</th>
+                        <th>Current Status</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody id="taskTableBody">
+                    <tr>
+                        <td colspan="4" style="text-align:center; color: #a0aec0; padding: 40px;">Initializing connection to backend...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5192'; 
+
+        // 1. Function to add new task
+        async function startMigration() {
+            const fileNameInput = document.getElementById('fileNameInput');
+            const statusMsg = document.getElementById('status-msg');
+            const migrateBtn = document.getElementById('migrateBtn');
+            const fileName = fileNameInput.value.trim();
+
+            if (!fileName) {
+                statusMsg.className = "text-error";
+                statusMsg.innerText = "Please enter a filename first!";
+                return;
+            }
+
+            // Disable UI during request
+            migrateBtn.disabled = true;
+            statusMsg.className = "";
+            statusMsg.innerText = "🚀 Submitting task...";
+
+            try {
+                // Hamein backend ke /migration/add endpoint par hit karna hai
+                const response = await fetch(`${API_BASE_URL}/migration/add?fileName=${encodeURIComponent(fileName)}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusMsg.className = "text-success";
+                    statusMsg.innerText = "✅ Task added! Workers will pick it up soon.";
+                    fileNameInput.value = ""; // Clear input
+                    fetchTasks(); // Refresh table immediately
+                } else {
+                    throw new Error(data.message || "Failed to add task");
+                }
+            } catch (err) {
+                statusMsg.className = "text-error";
+                statusMsg.innerText = "❌ Error: " + err.message;
+                console.error("Migration Error:", err);
+            } finally {
+                migrateBtn.disabled = false;
+            }
+        }
+
+        // 2. Function to fetch and display tasks
+        async function fetchTasks() {
+            const tableBody = document.getElementById('taskTableBody');
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/tasks`);
+                
+                if (!response.ok) throw new Error("Backend reachable but returned error");
+
+                const tasks = await response.json();
+                
+                if (!tasks || tasks.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: #a0aec0; padding: 30px;">No migration tasks found in database.</td></tr>`;
+                    return;
+                }
+
+                // Sorting tasks to show newest first
+                tasks.sort((a, b) => b.id - a.id);
+
+                tableBody.innerHTML = tasks.map(task => {
+                    const date = task.createdAt ? new Date(task.createdAt).toLocaleTimeString() : 'N/A';
+                    return `
+                        <tr>
+                            <td><strong>#${task.id}</strong></td>
+                            <td>${task.fileName}</td>
+                            <td><span class="status-badge status-${task.status}">${task.status}</span></td>
+                            <td style="color: #718096; font-size: 13px;">${date}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error("Auto-fetch error:", error);
+                // Sirf pehli baar error dikhayen, warna logs bhar jayenge
+                if (tableBody.innerText.includes("Initializing")) {
+                    tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color: #e53e3e; padding: 30px;">Unable to connect to Backend at ${API_BASE_URL}</td></tr>`;
+                }
+            }
+        }
+
+        // Run interval every 3 seconds
+        setInterval(fetchTasks, 3000);
+
+        // Initial fetch on load
+        window.onload = fetchTasks;
+    </script>
+</body>
+</html>
