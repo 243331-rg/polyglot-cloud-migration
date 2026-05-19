@@ -9,7 +9,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(connectionString));
 
-// 2. CORS Policy - Dashboard connection ke liye
+// 2. CORS Policy - Dashboard connection ke liye (Crucial Fix)
 builder.Services.AddCors(options => {
     options.AddDefaultPolicy(policy => {
         policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
@@ -27,6 +27,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// CORS Middleware enable karna zaroori hai
 app.UseCors();
 
 // --- API ENDPOINTS (Minimal API) ---
@@ -38,7 +39,6 @@ app.MapGet("/api/status", () => new { status = "Backend is running!" });
 app.MapGet("/api/tasks", async (AppDbContext db) => {
     try 
     {
-        // Table ka naam 'MigrationTasks' hona chahiye jo DbContext mein hai
         var tasks = await db.MigrationTasks.ToListAsync();
         return Results.Ok(tasks); 
     }
@@ -48,7 +48,7 @@ app.MapGet("/api/tasks", async (AppDbContext db) => {
     }
 });
 
-// C. ADD NEW TASK
+// C. ADD NEW TASK (Dashboard POST action)
 app.MapPost("/migration/add", async (AppDbContext db, string fileName) => {
     if (string.IsNullOrWhiteSpace(fileName)) 
         return Results.BadRequest(new { message = "FileName is required!" });
@@ -66,7 +66,7 @@ app.MapPost("/migration/add", async (AppDbContext db, string fileName) => {
     }
 });
 
-// D. COMPLETE TASK (Worker ke liye)
+// D. COMPLETE TASK (Worker status update action)
 app.MapPost("/migration/complete/{id}", async (AppDbContext db, int id) => {
     var task = await db.MigrationTasks.FindAsync(id);
     if (task == null) return Results.NotFound();
@@ -74,6 +74,24 @@ app.MapPost("/migration/complete/{id}", async (AppDbContext db, int id) => {
     task.Status = "Completed";
     await db.SaveChangesAsync();
     return Results.Ok(new { message = "Task marked as completed" });
+});
+
+// E. GET NEXT PENDING TASK (Python Worker ke liye loop connection)
+app.MapGet("/migration/next-task", async (AppDbContext db) => {
+    try
+    {
+        var nextTask = await db.MigrationTasks
+            .FirstOrDefaultAsync(t => t.Status == "Pending");
+
+        if (nextTask == null) 
+            return Results.NotFound(new { message = "No pending tasks found" });
+
+        return Results.Ok(nextTask);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem("Worker query error: " + ex.Message);
+    }
 });
 
 // 3. DB Auto-Creation
