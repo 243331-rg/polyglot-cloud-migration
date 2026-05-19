@@ -16,7 +16,7 @@ services:
         condition: on-failure
 
   backend:
-    image: polyglot-backend:latest
+    image: uzairsultan123/polyglot-backend:latest
     ports:
       - "8080:8080"
     environment:
@@ -27,11 +27,20 @@ services:
         condition: on-failure
 
   worker:
-    image: polyglot-worker:latest
+    image: uzairsultan123/polyglot-worker:latest
     environment:
       - BACKEND_URL=http://backend:8080/migration
     deploy:
-      replicas: 2
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  frontend:
+    image: uzairsultan123/polyglot-frontend:latest
+    ports:
+      - "80:80"
+    deploy:
+      replicas: 1
       restart_policy:
         condition: on-failure
 
