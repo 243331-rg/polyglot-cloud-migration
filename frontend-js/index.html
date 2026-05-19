@@ -20,13 +20,6 @@
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .pulse-glow {
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(0.98); }
-        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between p-4 md:p-8">
@@ -121,10 +114,10 @@
     </footer>
 
     <script>
-        // BACKEND API URL - Adjusted to map Swarm's Ingress Port 8080
+        // Mapped to Swarm's Ingress Port 8080
         const API_BASE_URL = "http://localhost:8080";
 
-        // Fetch all migration tasks
+        // 1. Fetch all migration tasks (Aligned with /api/tasks)
         async function fetchTasks() {
             const errorBanner = document.getElementById('errorBanner');
             const errorMessage = document.getElementById('errorMessage');
@@ -132,17 +125,16 @@
             const tableBody = document.getElementById('taskTableBody');
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/migrations`);
+                const response = await fetch(`${API_BASE_URL}/api/tasks`);
                 if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
                 
                 const tasks = await response.json();
                 
-                // Hide errors on success
                 errorBanner.classList.add('hidden');
                 systemStatus.innerHTML = `<span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> Connected`;
                 systemStatus.className = "font-medium text-green-400 flex items-center gap-1";
 
-                if (tasks.length === 0) {
+                if (!tasks || tasks.length === 0) {
                     tableBody.innerHTML = `<tr><td colspan="3" class="px-6 py-10 text-center text-slate-500 text-xs">No active migration tasks found in the database.</td></tr>`;
                     return;
                 }
@@ -155,7 +147,7 @@
                     return `
                         <tr class="hover:bg-slate-800/30 transition-colors">
                             <td class="px-6 py-4 font-mono text-xs text-blue-400 font-medium">#${task.id}</td>
-                            <td class="px-6 py-4 font-medium">${task.fileName}</td>
+                            <td class="px-6 py-4 font-medium">${task.fileName || task.filename}</td>
                             <td class="px-6 py-4">
                                 <span class="px-2.5 py-1 rounded-full text-xs font-medium border ${statusClass}">
                                     ${task.status}
@@ -166,7 +158,6 @@
                 }).join('');
 
             } catch (err) {
-                // Trigger Visual Error Alert Layout
                 errorBanner.classList.remove('hidden');
                 errorMessage.textContent = `Unable to connect to Backend at ${API_BASE_URL}. Ensure container ports are properly mapped.`;
                 systemStatus.innerHTML = `<span class="w-1.5 h-1.5 bg-rose-500 rounded-full"></span> Disconnected`;
@@ -175,7 +166,7 @@
             }
         }
 
-        // Trigger New File Migration Process
+        // 2. Trigger New File Migration (Aligned with /migration/add?fileName=...)
         async function startMigration() {
             const input = document.getElementById('filenameInput');
             const fileName = input.value.trim();
@@ -186,15 +177,13 @@
             }
 
             try {
-                const response = await fetch(`${API_BASE_URL}/api/migrations`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ fileName: fileName })
+                const response = await fetch(`${API_BASE_URL}/migration/add?fileName=${encodeURIComponent(fileName)}`, {
+                    method: 'POST'
                 });
 
                 if (response.ok) {
-                    input.value = ''; // Reset input field
-                    fetchTasks(); // Refresh list immediately
+                    input.value = ''; // Reset field
+                    fetchTasks(); // Refresh table
                 } else {
                     alert("Failed to create migration task. Check server endpoints.");
                 }
@@ -204,9 +193,9 @@
             }
         }
 
-        // Auto-refresh loops
+        // Loops
         fetchTasks();
-        setInterval(fetchTasks, 5000); // Polls api data every 5 seconds dynamically
+        setInterval(fetchTasks, 5000); // Live poll data every 5 seconds
     </script>
-</body> //http://localhost
+</body>
 </html>
