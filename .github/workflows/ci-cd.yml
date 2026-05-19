@@ -15,7 +15,7 @@ jobs:
     - name: Log in to Docker Hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKER_USERNAME }}
+        username: uzairsultan123
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Build and Push Frontend Image
@@ -23,11 +23,11 @@ jobs:
       with:
         context: ./frontend
         push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/polyglot-frontend:latest
+        tags: uzairsultan123/polyglot-frontend:latest
 
     - name: Build and Push Backend Image
       uses: docker/build-push-action@v5
       with:
         context: ./backend
         push: true
-        tags: ${{ secrets.DOCKER_USERNAME }}/polyglot-backend:latest
+        tags: uzairsultan123/polyglot-backend:latest
