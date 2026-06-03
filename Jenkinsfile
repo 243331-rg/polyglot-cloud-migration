@@ -3,31 +3,15 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                script {
-                    // Hum check karenge ki kaunsa command kaam kar raha hai
-                    def dockerComposeCmd = ""
-                    try {
-                        sh 'docker-compose --version'
-                        dockerComposeCmd = 'docker-compose'
-                    } catch (Exception e) {
-                        try {
-                            sh 'docker compose version'
-                            dockerComposeCmd = 'docker compose'
-                        } catch (Exception e2) {
-                            error "Docker Compose nahi mila! Check karein ki Docker-Compose install hai ya nahi."
-                        }
-                    }
-                    
-                    echo "Using command: ${dockerComposeCmd}"
-                    sh "${dockerComposeCmd} build"
-                }
+                echo 'Building the project...'
+                // Hum direct command chala rahe hain, kyunki host par install ho chuka hai
+                sh 'docker-compose build'
             }
         }
         stage('Deploy') {
             steps {
-                script {
-                    sh 'docker-compose up -d' // Yahan aap apni pehchan ki command likhein
-                }
+                echo 'Deploying the project...'
+                sh 'docker-compose up -d'
             }
         }
     }
