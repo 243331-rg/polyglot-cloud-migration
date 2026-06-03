@@ -4,7 +4,7 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building the project...'
-                // Hum direct command chala rahe hain, kyunki host par install ho chuka hai
+                // Hum host ke docker-compose ko map karke use karenge
                 sh 'docker-compose build'
             }
         }
