@@ -4,14 +4,14 @@ pipeline {
         stage('Build') {
             steps {
                 echo 'Building the project...'
-                // Hum host ke docker-compose ko map karke use karenge
-                sh 'docker-compose build'
+                // Hum container ke andar ka exact path use kar rahe hain
+                sh '/usr/bin/docker-compose build'
             }
         }
         stage('Deploy') {
             steps {
                 echo 'Deploying the project...'
-                sh 'docker-compose up -d'
+                sh '/usr/bin/docker-compose up -d'
             }
         }
     }
