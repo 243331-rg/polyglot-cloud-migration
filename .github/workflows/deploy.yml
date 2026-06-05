@@ -1,0 +1,11 @@
+name: Trigger Jenkins
+on:
+  push:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Jenkins Pipeline
+        run: |
+          curl -X POST http://Uzair%20sultan:112d09e3d1a8fed0d9ab8924b59ec5a5a@104.214.180.62:8080/job/migration-pipeline/build
