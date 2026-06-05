@@ -1,15 +1,18 @@
 pipeline {
     agent any
+    environment {
+        // Ye line Docker API version ka conflict solve kar degi
+        DOCKER_API_VERSION = '1.44'
+    }
     stages {
         stage('Build') {
             steps {
-                // Is line se docker-compose ka path fix ho jayega
+                // Yahan full path use karein
                 sh '/usr/local/bin/docker-compose build'
             }
         }
         stage('Deploy') {
             steps {
-                // Is line se aapka project start ho jayega
                 sh '/usr/local/bin/docker-compose up -d'
             }
         }
